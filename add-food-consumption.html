@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Food Consumption</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"
+    />
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+      }
+      .form-container {
+        max-width: 500px;
+        margin: 50px auto;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <div class="form-container">
+      <h2 class="text-center mb-4">Add Food Consumption</h2>
+      <form id="foodConsumptionForm">
+        <div class="mb-3">
+          <label for="foodName" class="form-label">Food Name</label>
+          <input type="text" class="form-control" id="foodName" required maxlength="128" />
+        </div>
+        <div class="mb-3">
+          <label for="calories" class="form-label">Calories</label>
+          <input type="number" class="form-control" id="calories" required min="0" max="1000" step="0.1" />
+        </div>
+        <div class="mb-3">
+          <label for="consumptionDate" class="form-label">Consumption Date</label>
+          <input type="datetime-local" class="form-control" id="consumptionDate" required />
+        </div>
+        <div class="mb-3">
+          <label for="quantity" class="form-label">Quantity</label>
+          <input type="number" class="form-control" id="quantity" required min="0" max="1000" />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Add</button>
+      </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const encryptedToken = localStorage.getItem("token");
+        const salt = localStorage.getItem("salt");
+        if (!encryptedToken || !salt) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Anda belum login.',
+          }).then(() => {
+            window.location.href = "/tes.html";
+          });
+          return;
+        }
+
+        document.getElementById("foodConsumptionForm").addEventListener("submit", async function (event) {
+          event.preventDefault();
+          const foodName = document.getElementById("foodName").value;
+          const calories = document.getElementById("calories").value;
+          const consumptionDate = document.getElementById("consumptionDate").value;
+          const quantity = document.getElementById("quantity").value;
+
+          const requestBody = {
+            foodName: foodName,
+            calories: parseFloat(calories),
+            consumptionDate: consumptionDate,
+            quantity: parseInt(quantity, 10),
+          };
+
+          const token = CryptoJS.AES.decrypt(encryptedToken, salt).toString(CryptoJS.enc.Utf8); // Decrypt token with salt
+
+          try {
+            const response = await fetch("http://localhost:8080/api/food-consumption", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-API-TOKEN": token, // Send token in header
+              },
+              body: JSON.stringify(requestBody),
+            });
+
+            if (response.ok) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Food consumption added successfully!',
+                showConfirmButton: false,
+                timer: 1500
+              }).then(() => {
+                window.location.href = "/dashboard.html"; // Redirect to dashboard
+              });
+            } else {
+              const errorResult = await response.json();
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorResult.errors || 'Failed to add food consumption.',
+              });
+            }
+          } catch (err) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'An error occurred while adding food consumption.',
+            });
+            console.error("Error:", err);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
